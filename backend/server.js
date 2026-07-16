@@ -42,7 +42,14 @@ io.on("connection", (socket) => {
 
 // Routes
 const authRoutes = require("./routes/authRoutes");
+const courseRoutes = require("./routes/courseRoutes");
+const lessonRoutes = require("./routes/lessonRoutes");
+const youtubeRoutes = require("./routes/youtubeRoutes");
+
 app.use("/api/auth", authRoutes);
+app.use("/api/courses", courseRoutes);
+app.use("/api/lessons", lessonRoutes);
+app.use("/api/youtube", youtubeRoutes);
 
 // Basic Route
 app.get("/", (req, res) => {

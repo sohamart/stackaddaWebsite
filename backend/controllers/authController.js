@@ -63,25 +63,39 @@ const authUser = async (req, res) => {
   }
 };
 
-// @desc    Get user profile
+// @desc    Get user profile with populated enrollments
 // @route   GET /api/auth/profile
 // @access  Private
 const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-    if (user) {
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        xp: user.xp,
-        coins: user.coins,
-      });
-    } else {
-      res.status(404).json({ message: 'User not found' });
+    const user = await User.findById(req.user._id)
+      .populate({
+        path: 'enrolledCourses',
+        select: 'title thumbnail description price'
+      })
+      .select('-password');
+      
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
+
+    // Calculate progress for each enrolled course
+    const Course = require('../models/Course');
+    const Lesson = require('../models/Lesson');
+    
+    let courseProgress = {};
+    for (const course of user.enrolledCourses) {
+      const courseLessons = await Lesson.find({ course: course._id }).select('_id');
+      const lessonIds = courseLessons.map(l => l._id.toString());
+      const completedInCourse = user.completedLessons.filter(lId => lessonIds.includes(lId.toString())).length;
+      
+      courseProgress[course._id.toString()] = lessonIds.length > 0 ? Math.round((completedInCourse / lessonIds.length) * 100) : 0;
+    }
+
+    const userObj = user.toObject();
+    userObj.courseProgress = courseProgress;
+
+    res.json(userObj);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -125,4 +139,41 @@ const googleAuth = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, authUser, getUserProfile, googleAuth };
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+const updateUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (user) {
+      user.name = req.body.name || user.name;
+      user.email = req.body.email || user.email;
+      
+      if (req.body.avatar) {
+        user.avatar = req.body.avatar;
+      }
+
+      if (req.body.password) {
+        user.password = req.body.password;
+      }
+
+      const updatedUser = await user.save();
+
+      res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        avatar: updatedUser.avatar,
+        token: req.headers.authorization ? req.headers.authorization.split(' ')[1] : generateToken(updatedUser._id)
+      });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { registerUser, authUser, googleAuth, getUserProfile, updateUserProfile };

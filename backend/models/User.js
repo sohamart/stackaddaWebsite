@@ -9,7 +9,15 @@ const userSchema = new mongoose.Schema({
   avatar: { type: String, default: '' },
   xp: { type: Number, default: 0 },
   coins: { type: Number, default: 0 },
-  isVerified: { type: Boolean, default: false }
+  isVerified: { type: Boolean, default: false },
+  enrolledCourses: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Course'
+  }],
+  completedLessons: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Lesson'
+  }]
 }, { timestamps: true });
 
 // Hash password before saving

@@ -10,7 +10,10 @@ const lessonSchema = new mongoose.Schema({
     thumbnail: { type: String },
     description: { type: String },
     views: { type: String },
-    order: { type: Number, default: 0 }
+    order: { type: Number, default: 0 },
+    isPrivate: { type: Boolean, default: false },
+    allowedEmails: [{ type: String }],
+    isLive: { type: Boolean, default: false }
   
 }, { timestamps: true });
 
